@@ -5,20 +5,21 @@ This repo exposes the issue with the Jenkins plugin classloader that leads to fu
 like [12464](https://issues.jenkins-ci.org/browse/JENKINS-12464), [12124](https://issues.jenkins-ci.org/browse/JENKINS-12124)
 etc.
 
-This is the kind of stuff that makes restarting Jenkins akin to playing Russian Roulette.
-
-Full disclosure: I haven't programmed Java in several years so my code can look like node.js. Apologies in advance.
+Full disclosure: I haven't programmed Java in several years and I've lost my maven-fu. My test case runs in IntelliJ IDEA but I don't have a command line version. Apologies in advance.
 
 The basic problem is a lack of synchronization in this method
 [here](https://github.com/jenkinsci/jenkins/blob/ee4e9c61491e89e7879337279bc58f85eb9048d1/core/src/main/java/jenkins/ClassLoaderReflectionToolkit.java#L42)
 which leads to a
 
-`java.lang.LinkageError loader (instance of  hudson/ClassicPluginStrategy$AntClassLoader2): attempted  duplicate class definition for name: "hudson/plugins/analysis/core/AbstractProjectAction"`
+```
+java.lang.LinkageError loader (instance of  hudson/ClassicPluginStrategy$AntClassLoader2): 
+    attempted  duplicate class definition for name: "hudson/plugins/analysis/core/AbstractProjectAction"
+```
 
 which, in turned is completely swallowed [here](https://github.com/jenkinsci/jenkins/blob/b2c69b4a355b47f6da400a21173680daea4f6a4c/core/src/main/java/hudson/ClassicPluginStrategy.java#L575)
 because it is hidden behind an `InvocationTargetException` and the code assumes that all the ITEs are caused due to `ClassNotFoundError` errors.
 
-The `ExposeClassLoaderBug` program, when run, produces the following output for me (I also created a copy of ClassicPluginStrategy with some additional debugging
+The [`ExposeClassLoaderBug`](src/main/java/ExposeClassLoaderBug.java) program, when run, produces the following output for me (I also created a copy of ClassicPluginStrategy with some additional debugging
 when the ITE's root cause is not a CNFE)
 
 ```
